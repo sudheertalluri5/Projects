@@ -1,0 +1,1 @@
+This is done when I was looking at this 'Weka Tool' for data mining, where the input type is arff(attribute relation file format) and to input csv files I had into this tool I then had to write a python script to convert the same. These two scripts do the same stuff but they are coded differently.
