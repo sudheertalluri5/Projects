@@ -1,0 +1,1 @@
+This is a script which does M-ary QAM and also demodulates it. It also finds the ber(bit error rate) of the signal after demodulation. As there is no physical channel in there, I added a rayleigh noise model after modulation and then did the rest.This is project I did as a part of my academics.

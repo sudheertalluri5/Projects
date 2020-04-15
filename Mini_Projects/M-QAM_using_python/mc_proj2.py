@@ -150,13 +150,13 @@ class MQAM_demodulate:
         self.threshold()
         self.dmqam()
         return
-#mod=MQAM_modulate()
-#modulated,m=mod.modulate()
-#rch_mod=Rayleigh_channel(modulated).rayleigh_ch()
-#demod=MQAM_demodulate(rch_mod,m)
-#x=(demod.demodulate())
-#err=0
-#for x,y in zip(mod.forber,demod.uni_mod):
-#    if(x!=y):
-#        err+=1
-#print(err/len(mod.forber))
+mod=MQAM_modulate()
+modulated,m=mod.modulate()
+rch_mod=Rayleigh_channel(modulated).rayleigh_ch()
+demod=MQAM_demodulate(rch_mod,m)
+x=(demod.demodulate())
+err=0
+for x,y in zip(mod.forber,demod.uni_mod):
+    if(x!=y):
+        err+=1
+print(err/len(mod.forber))
