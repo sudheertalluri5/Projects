@@ -1,0 +1,1 @@
+Beside the other projects, these are some small projects which I did whenever I needed them while learing something else or when I tried solving something around me.
