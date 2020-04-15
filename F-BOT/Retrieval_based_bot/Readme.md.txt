@@ -1,0 +1,1 @@
+This is a retrieval based model of the bot where we used glove embeddings and cosine similarity to do the work. For now we trained the model using chatterbot libraries yml files. We are going to make our own question and answer datasets soon
