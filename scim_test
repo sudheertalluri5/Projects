@@ -1,75 +1,132 @@
-import json
-import requests
-from django.http import JsonResponse
-from django_scim.views import ScimViewSet
-from django_scim.utils import build_scim_resource_response
+from django.urls import path, include
+from django_scim.views import ScimView
 
-class MyViewSet(ScimViewSet):
-    def list(self, request):
-        # Make a GET request to your REST API to retrieve all users or groups
-        # Replace the URL and headers with your own values
-        url = 'https://your.rest.api.url/users'
-        headers = {
-            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
-            'Content-Type': 'application/json'
-        }
-        response = requests.get(url, headers=headers)
-        
-        # Parse the JSON response from the REST API into a Python object
-        data = json.loads(response.text)
-        
-        # Convert the Python object into a SCIM response using the build_scim_resource_response function
-        scim_response = build_scim_resource_response(data['data'], many=True)
-        
-        # Return the SCIM response as a JSON object
-        return JsonResponse(scim_response, status=200, safe=False)
-
-    def create(self, request):
-        # Extract the user or group data from the SCIM request body
-        data = request.body.decode('utf-8')
-        user_data = json.loads(data)
-        
-        # Make a POST request to your REST API to create a new user or group
-        # Replace the URL and headers with your own values
-        url = 'https://your.rest.api.url/users'
-        headers = {
-            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
-            'Content-Type': 'application/json'
-        }
-        response = requests.post(url, headers=headers, json=user_data)
-        
-        # Parse the JSON response from the REST API into a Python object
-        data = json.loads(response.text)
-        
-        # Convert the Python object into a SCIM response using the build_scim_resource_response function
-        scim_response = build_scim_resource_response(data, many=False)
-        
-        # Return the SCIM response as a JSON object
-        return JsonResponse(scim_response, status=201, safe=False)
-
-    def retrieve(self, request, pk):
-        # Make a GET request to your REST API to retrieve a specific user or group
-        # Replace the URL and headers with your own values
-        url = f'https://your.rest.api.url/users/{pk}'
-        headers = {
-            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
-            'Content-Type': 'application/json'
-        }
-        response = requests.get(url, headers=headers)
-        
-        # Parse the JSON response from the REST API into a Python object
-        data = json.loads(response.text)
-        
-        # Convert the Python object into a SCIM response using the build_sc
-
+urlpatterns = [
+    path('scim/v2/', ScimView.as_view()),
+    path('api/', include('scim_app.urls')),
+]
 
 
 from django.urls import path
-from django_scim.views import SCIMViewSet
+from . import views
 
 urlpatterns = [
-    path('Users/', SCIMViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('Users/<str:id>/', SCIMViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
-    path('Groups/', SCIMViewSet.as_view({'get': 'list', 'post': 'create'})),
-    path('Groups/<str:id>/', SCIMViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    path('users/', views.users_list),
+    path('users/<str:id>/', views.users_detail),
+    path('groups/', views.groups_list),
+    path('groups/<str:id>/', views.groups_detail),
 ]
+
+
+from django_scim.views import SCIMAPIView
+from django_scim.constants import OPERATION_ADD, OPERATION_REPLACE, OPERATION_REMOVE
+from django.http import JsonResponse
+import requests
+from .utils import build_scim_resource_response
+
+class UserSCIMView(SCIMAPIView):
+    def get(self, request, *args, **kwargs):
+        # Retrieve users from external REST API
+        response = requests.get('https://your_external_rest_api.com/users')
+        users = response.json()
+
+        # Build SCIM resource response
+        resources = []
+        for user in users:
+            resources.append(build_scim_resource_response(
+                'User',
+                user['id'],
+                {
+                    'userName': user['username'],
+                    'name': {
+                        'givenName': user['first_name'],
+                        'familyName': user['last_name'],
+                    },
+                    'emails': [
+                        {
+                            'value': user['email'],
+                            'type': 'work',
+                            'primary': True,
+                        }
+                    ],
+                }
+            ))
+        return JsonResponse({'Resources': resources})
+
+    def post(self, request, *args, **kwargs):
+        # Parse incoming SCIM request
+        data = request.body.decode('utf-8')
+        scim_data = json.loads(data)
+
+        # Create user in external REST API
+        response = requests.post('https://your_external_rest_api.com/users', json=scim_data)
+        user = response.json()
+
+        # Build SCIM resource response
+        resource = build_scim_resource_response(
+            'User',
+            user['id'],
+            {
+                'userName': user['username'],
+                'name': {
+                    'givenName': user['first_name'],
+                    'familyName': user['last_name'],
+                },
+                'emails': [
+                    {
+                        'value': user['email'],
+                        'type': 'work',
+                        'primary': True,
+                    }
+                ],
+            }
+        )
+        return JsonResponse({'Resources': [resource]})
+
+    def put(self, request, *args, **kwargs):
+        # Parse incoming SCIM request
+        data = request.body.decode('utf-8')
+        scim_data = json.loads(data)
+
+        # Update user in external REST API
+        user_id = kwargs['uuid']
+        response = requests.put(f'https://your_external_rest_api.com/users/{user_id}', json=scim_data)
+        user = response.json()
+
+        # Build SCIM resource response
+        operation = OPERATION_REPLACE if response.status_code == 200 else OPERATION_ADD
+        resource = build_scim_resource_response(
+            'User',
+            user['id'],
+            {
+                'userName': user['username'],
+                'name': {
+                    'givenName': user['first_name'],
+                    'familyName': user['last_name'],
+                },
+                'emails': [
+                    {
+                        'value': user['email'],
+                        'type': 'work',
+                        'primary': True,
+                    }
+                ],
+            },
+            operation=operation,
+        )
+        return JsonResponse({'Resources': [resource]})
+
+    def patch(self, request, *args, **kwargs):
+        # Parse incoming SCIM request
+        data = request.body.decode('utf-8')
+        scim_data = json.loads(data)
+
+        # Update user in external REST API
+        user_id = kwargs['uuid']
+        response = requests.patch(f'https://your_external_rest_api.com/users/{user_id}', json=scim_data)
+        user = response.json()
+
+        # Build SCIM resource response
+        operations = []
+        for key, value in scim_data.items():
+            op =
