@@ -1,0 +1,75 @@
+import json
+import requests
+from django.http import JsonResponse
+from django_scim.views import ScimViewSet
+from django_scim.utils import build_scim_resource_response
+
+class MyViewSet(ScimViewSet):
+    def list(self, request):
+        # Make a GET request to your REST API to retrieve all users or groups
+        # Replace the URL and headers with your own values
+        url = 'https://your.rest.api.url/users'
+        headers = {
+            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+            'Content-Type': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        
+        # Parse the JSON response from the REST API into a Python object
+        data = json.loads(response.text)
+        
+        # Convert the Python object into a SCIM response using the build_scim_resource_response function
+        scim_response = build_scim_resource_response(data['data'], many=True)
+        
+        # Return the SCIM response as a JSON object
+        return JsonResponse(scim_response, status=200, safe=False)
+
+    def create(self, request):
+        # Extract the user or group data from the SCIM request body
+        data = request.body.decode('utf-8')
+        user_data = json.loads(data)
+        
+        # Make a POST request to your REST API to create a new user or group
+        # Replace the URL and headers with your own values
+        url = 'https://your.rest.api.url/users'
+        headers = {
+            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+            'Content-Type': 'application/json'
+        }
+        response = requests.post(url, headers=headers, json=user_data)
+        
+        # Parse the JSON response from the REST API into a Python object
+        data = json.loads(response.text)
+        
+        # Convert the Python object into a SCIM response using the build_scim_resource_response function
+        scim_response = build_scim_resource_response(data, many=False)
+        
+        # Return the SCIM response as a JSON object
+        return JsonResponse(scim_response, status=201, safe=False)
+
+    def retrieve(self, request, pk):
+        # Make a GET request to your REST API to retrieve a specific user or group
+        # Replace the URL and headers with your own values
+        url = f'https://your.rest.api.url/users/{pk}'
+        headers = {
+            'Authorization': 'Bearer YOUR_ACCESS_TOKEN',
+            'Content-Type': 'application/json'
+        }
+        response = requests.get(url, headers=headers)
+        
+        # Parse the JSON response from the REST API into a Python object
+        data = json.loads(response.text)
+        
+        # Convert the Python object into a SCIM response using the build_sc
+
+
+
+from django.urls import path
+from django_scim.views import SCIMViewSet
+
+urlpatterns = [
+    path('Users/', SCIMViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('Users/<str:id>/', SCIMViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    path('Groups/', SCIMViewSet.as_view({'get': 'list', 'post': 'create'})),
+    path('Groups/<str:id>/', SCIMViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+]
